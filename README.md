@@ -18,7 +18,7 @@ I was in a hurry and consuming JSON sounded easier.
 Medium doesn't include those in the RSS feed. We would handle them if they did.
 
 ### I don't like the formatting in my generated Word document.
-Branch or change it after downloading.
+Fork or change it after downloading.
 
 ### No, it's literally broken.
 [Make an issue](https://github.com/VersorVerbi/medium-to-word/issues/new/choose), I guess?
