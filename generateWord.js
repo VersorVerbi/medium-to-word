@@ -25,6 +25,32 @@ function resolve(evt) {
 						let doc = new docx.Document({
 							'title': title,
 							'styles': myStyles(),
+							'numbering': {
+								'config': [
+									{
+										reference: 'medium-numbering',
+										levels: [
+											{
+												level: 0,
+												format: "decimal",
+												text: "%1.",
+												alignment: docx.AlignmentType.START,
+												style: {
+													run: {
+														font: {
+															name: "Calibri",
+														},
+														size: 24,
+													},
+													paragraph: {
+														indent: {left: 720, hanging: 260},
+													},
+												},
+											},
+										],
+									},
+								],
+							},
 						});
 						// retrieve and set up HTML
 						let textContent = posts[i].description;
@@ -38,6 +64,33 @@ function resolve(evt) {
 						// parse into document pieces
 						let nodes = body.children; // elements only!
 						for (let n = 0; n < nodes.length; n++) {
+							if (nodes[n].nodeName === "OL" || nodes[n].nodeName === "UL") {
+								let listItems = nodes[n].children; // not text nodes like line breaks
+								for (let subN = 0; subN < listItems.length; subN++) {
+									let liText = await getTextRuns(listItems[subN], ['_li'], doc);
+									let liPara;
+									if (nodes[n].nodeName === "OL") {
+										liPara = new docx.Paragraph({
+											'children': liText,
+											'style': 'myNormal',
+											numbering: {
+												reference: 'medium-numbering',
+												level: 0,
+											},
+										});
+									} else {
+										liPara = new docx.Paragraph({
+											'children': liText,
+											'style': 'myNormal',
+											bullet: {
+												level: 0,
+											},
+										});
+									}
+									paras.push(liPara);
+								}
+								continue;
+							}
 							let style = getWordStyle(nodes[n].nodeName);
 							let textRuns = await getTextRuns(nodes[n], [style], doc);
 							let para;
@@ -110,7 +163,7 @@ function getWordStyle(nodeName) {
 		case "HR":
 			style = "myHr";
 			break;
-		default: // includes "P", "A", "BR", "IMG"
+		default: // includes "P", "A", "BR", "IMG", "LI", "OL", "UL"
 			style = "myNormal";
 			break;
 	}
@@ -134,14 +187,20 @@ async function getTextRuns(node, parentStyleList, doc) {
 				if (dimensions.error) {
 					throw new Error("Images are probably rate-limited. Wait ~1 hour then try again.");
 				}
+				let aspectRatio = dimensions.height / dimensions.width;
+				let width = inchesToPixels(6.2);
+				let height = width * aspectRatio;
 				let blob = await fetch(href).then(result => result.blob());
-				run = docx.Media.addImage(doc, blob, dimensions.width, dimensions.height);
+				run = docx.Media.addImage(doc, blob, width, height);
 			} else {
 				if (kids[i].nodeName.toUpperCase() === "A") {
 					let href = kids[i].getAttribute('href');
 					if (href.length > 0) {
 						run = doc.createHyperlink(href, kids[i].textContent);
 					}
+				}
+				if (parentStyleList.includes('_li') && !parentStyleList.includes('myNormal')) {
+					style = 'myNormal';
 				}
 				if (run === null) {
 					let style = getWordStyle(kids[i].nodeName);
@@ -161,6 +220,10 @@ async function getTextRuns(node, parentStyleList, doc) {
 			if (parentStyleList.includes('myStrong')) {
 				properties.bold = true;
 			}
+			if (parentStyleList.includes('_li') && !parentStyleList.includes('myNormal')) {
+				properties.font = 'Calibri';
+				properties.size = 24;
+			}
 			run = new docx.TextRun(properties);
 		}
 		output.push(run);
@@ -170,7 +233,17 @@ async function getTextRuns(node, parentStyleList, doc) {
 
 function myStyles() {
 	let halfInch = docx.convertInchesToTwip(0.5);
-	let styles = {
+	return {
+		default: {
+			listNumbering: {
+				run: {
+					font: {
+						name: "Calibri",
+					},
+					size: 24,
+				},
+			},
+		},
 		paragraphStyles: [
 			{
 				id: 'myNormal',
@@ -257,7 +330,6 @@ function myStyles() {
 				basedOn: 'myNormal',
 				paragraph: {
 					spacing: {
-						before: 0,
 						after: 0,
 					},
 					alignment: docx.AlignmentType.CENTER,
@@ -291,6 +363,12 @@ function myStyles() {
 			},
 		],
 	}
-	
-	return styles;
+}
+
+function inchesToPixels(inches) {
+	return twipsToPixels(docx.convertInchesToTwip(inches));
+}
+
+function twipsToPixels(twips) {
+	return twips / 15;
 }
