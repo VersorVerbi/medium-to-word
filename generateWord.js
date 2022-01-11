@@ -174,15 +174,15 @@ async function getImage(dimensions, href, imageSizer) {
 	return new Promise(async (resolve) => {
 		if (dimensions.error) {
 			console.log("Images are probably rate-limited. Wait ~1 hour then try again.");
-			let img = document.createElement('img');
-			img.onload(async () => {
+			let img = new Image();
+			img.onload = async () => {
 				dimensions = { height: img.clientHeight, width: img.clientWidth };
 				let aspectRatio = dimensions.height / dimensions.width;
 				let width = inchesToPixels(6.2);
 				let height = width * aspectRatio;
 				let blob = await fetch(href).then(result => result.blob());
 				resolve([blob, width, height]);
-			});
+			};
 			img.src = href;
 			while (imageSizer.childElementCount) imageSizer.removeChild(imageSizer.firstChild);
 			imageSizer.appendChild(img);
