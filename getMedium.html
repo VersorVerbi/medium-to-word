@@ -10,6 +10,8 @@
 				display: block;
 				width: 70%;
 				padding-top:50px;
+				overflow: hidden;
+				height: 100vh;
 			}
 			input[type="submit"] {
 				margin-top: 10px;
@@ -24,6 +26,9 @@
 				text-align: center;
 				color: orange;
 				font-weight: 700;
+			}
+			.imageSizer {
+				opacity: 0;
 			}
 		</style>
 		<title>Medium-to-Word File Generator</title>
@@ -42,6 +47,7 @@
 			<label for="artTtl">Article Title (optional): </label><input type="text" id="artTtl" name="artTtl" /><br />
 			<input type="submit" />
 		</form>
+		<div class="imageSizer"></div>
 		<script type="text/javascript" src="generateWord.js"></script>
 	</body>
 </html>

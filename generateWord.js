@@ -2,8 +2,8 @@ document.getElementById('getWordForm').addEventListener('submit', resolve);
 
 function resolve(evt) {
 	evt.preventDefault();
-	var username = this.elements[0].value;
-	var article = this.elements[1].value;
+	const username = this.elements[0].value;
+	const article = this.elements[1].value;
 	if (username.length === 0) {
 		return;
 	}
@@ -19,7 +19,7 @@ function resolve(evt) {
 					}
 					
 					for (let i = 0; i < 1; i++) { // posts.length
-						var title = posts[i].title;
+						const title = posts[i].title;
 						
 						// set up document
 						let doc = new docx.Document({
@@ -170,9 +170,36 @@ function getWordStyle(nodeName) {
 	return style;
 }
 
+async function getImage(dimensions, href, imageSizer) {
+	return new Promise(async (resolve) => {
+		if (dimensions.error) {
+			console.log("Images are probably rate-limited. Wait ~1 hour then try again.");
+			let img = document.createElement('img');
+			img.onload(async () => {
+				dimensions = { height: img.clientHeight, width: img.clientWidth };
+				let aspectRatio = dimensions.height / dimensions.width;
+				let width = inchesToPixels(6.2);
+				let height = width * aspectRatio;
+				let blob = await fetch(href).then(result => result.blob());
+				resolve([blob, width, height]);
+			});
+			img.src = href;
+			while (imageSizer.childElementCount) imageSizer.removeChild(imageSizer.firstChild);
+			imageSizer.appendChild(img);
+		} else {
+			let aspectRatio = dimensions.height / dimensions.width;
+			let width = inchesToPixels(6.2);
+			let height = width * aspectRatio;
+			let blob = await fetch(href).then(result => result.blob());
+			resolve([blob, width, height]);
+		}
+	})
+}
+
 async function getTextRuns(node, parentStyleList, doc) {
 	let output = [];
 	let kids = node.childNodes;
+	const imageSizer = document.querySelector('.imageSizer');
 	for (let i = 0; i < kids.length; i++) { // now we want all children
 		let run = null;
 		if (kids[i].nodeType === Node.ELEMENT_NODE) {
@@ -184,13 +211,7 @@ async function getTextRuns(node, parentStyleList, doc) {
 						'Authorization': myToken,
 					},
 				}).then(result => result.json());
-				if (dimensions.error) {
-					throw new Error("Images are probably rate-limited. Wait ~1 hour then try again.");
-				}
-				let aspectRatio = dimensions.height / dimensions.width;
-				let width = inchesToPixels(6.2);
-				let height = width * aspectRatio;
-				let blob = await fetch(href).then(result => result.blob());
+				let [blob, width, height] = await getImage(dimensions, href, imageSizer);
 				run = docx.Media.addImage(doc, blob, width, height);
 			} else {
 				if (kids[i].nodeName.toUpperCase() === "A") {
