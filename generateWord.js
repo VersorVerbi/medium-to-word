@@ -17,6 +17,12 @@ function resolve(evt) {
 					if (article.length > 0) {
 						posts = posts.filter(item => item.title.toLowerCase() === article.toLowerCase());
 					}
+					if (posts.length === 0) {
+						const publicationFeed = await fetch("https://api.rss2json.com/v1/api.json?rss_url=https://medium.com/feed/catholicism-coffee").then(result => result.json());
+						allPublishes = publicationFeed.items;
+						posts = allPublishes.filter(item => item.categories.length > 0);
+						posts = posts.filter(item => item.title.toLowerCase() === article.toLowerCase());
+					}
 					
 					for (let i = 0; i < 1; i++) { // posts.length
 						const title = posts[i].title;
